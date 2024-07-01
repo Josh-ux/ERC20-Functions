@@ -1,56 +1,55 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+
+interface IERC20 {
+    function totalSupply() external view returns (uint); 
+    function balanceOf(address account) external view returns (uint); 
+    function transfer(address recipient, uint amount) external returns (bool); 
+    event Transfer(address indexed from, address indexed to, uint amount);
+}
 
 
-contract JoshToken is ERC20 {
-    // State variables
-    address public owner;
-    uint256 public totalSupply;
-    string public constant NAME = "Josh Token";
-    string public constant SYMBOL = "Josh";
-    uint8 public constant DECIMALS = 18;
+contract Tokens is IERC20 {
+    address public owner; 
+    uint public override totalSupply; 
+    mapping(address => uint) public override balanceOf; 
+    string public name = "JOSH Tokens"; 
+    string public symbol = "JOSH"; 
+    uint8 public decimals = 18; 
 
-    // Mapping to hold balances
-    mapping(address => uint256) balances;
+    modifier onlyOwner() {
+        require(msg.sender == owner, "Only owner can mint JOSH tokens"); 
+        _; 
+    }
 
-    // Events
-    event TokensMinted(address indexed to, uint256 amount);
-    event TokensBurned(address indexed from, uint256 amount);
-    event Transfer(address indexed from, address indexed to, uint256 amount);
-
-    // Constructor sets the initial owner
+    
     constructor() {
         owner = msg.sender;
     }
 
-    // Modifier to restrict functions to only the owner
-    modifier onlyOwner() {
-        require(msg.sender == owner, "JoshToken: Caller is not the owner");
-        _;
+    function transfer(
+        address recipient,
+        uint amount
+    ) external override returns (bool) {
+        require(balanceOf[msg.sender] >= amount, "Insufficient balance"); 
+        balanceOf[msg.sender] -= amount; 
+        balanceOf[recipient] += amount; 
+        emit Transfer(msg.sender, recipient, amount); 
+        return true; 
     }
 
-    function mint(uint256 amount, address to) external onlyOwner {
-        balances[to] += amount;
-        totalSupply += amount;
-        emit TokensMinted(to, amount);
-        emit Transfer(address(0), to, amount);
+
+    function mint(uint amount) external onlyOwner {
+        balanceOf[msg.sender] += amount;
+        totalSupply += amount; 
+        emit Transfer(address(0), msg.sender, amount);
     }
 
-    function transfer(address to, uint256 amount) external returns (bool success) {
-        require(balances[msg.sender] >= amount, "Insufficient balance");
-        balances[msg.sender] -= amount;
-        balances[to] += amount;
-        emit Transfer(msg.sender, to, amount);
-        return true;
-    }
 
-    function burn(uint256 amount) external {
-        require(balances[msg.sender] >= amount, "Insufficient balance to burn");
-        balances[msg.sender] -= amount;
-        totalSupply -= amount;
-        emit TokensBurned(msg.sender, amount);
-        emit Transfer(msg.sender, address(0), amount);
+    function burn(uint amount) external {
+        balanceOf[msg.sender] -= amount; 
+        totalSupply -= amount; 
+        emit Transfer(msg.sender, address(0), amount); 
     }
 }
