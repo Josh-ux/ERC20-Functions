@@ -1,55 +1,85 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.19;
-
+pragma solidity ^0.8.0;
 
 interface IERC20 {
-    function totalSupply() external view returns (uint); 
-    function balanceOf(address account) external view returns (uint); 
-    function transfer(address recipient, uint amount) external returns (bool); 
-    event Transfer(address indexed from, address indexed to, uint amount);
+    function totalSupply() external view returns (uint256);
+    function balanceOf(address account) external view returns (uint256);
+    function transfer(address recipient, uint256 amount) external returns (bool);
+    function allowance(address owner, address spender) external view returns (uint256);
+    function approve(address spender, uint256 amount) external returns (bool);
+    function transferFrom(address sender, address recipient, uint256 amount) external returns (bool);
+
+    event Transfer(address indexed from, address indexed to, uint256 value);
+    event Approval(address indexed owner, address indexed spender, uint256 value);
 }
 
+contract ERC20 is IERC20 {
+    string public name;
+    string public symbol;
+    uint8 public decimals;
+    uint256 private _totalSupply;
 
-contract Tokens is IERC20 {
-    address public owner; 
-    uint public override totalSupply; 
-    mapping(address => uint) public override balanceOf; 
-    string public name = "JOSH Tokens"; 
-    string public symbol = "JOSH"; 
-    uint8 public decimals = 18; 
+    mapping(address => uint256) private _balances;
+    mapping(address => mapping(address => uint256)) private _allowances;
 
-    modifier onlyOwner() {
-        require(msg.sender == owner, "Only owner can mint JOSH tokens"); 
-        _; 
+    constructor(string memory _name, string memory _symbol, uint8 _decimals, uint256 initialSupply) {
+        name = _name;
+        symbol = _symbol;
+        decimals = _decimals;
+        _totalSupply = initialSupply * 10 ** uint256(decimals);
+        _balances[msg.sender] = _totalSupply;
+        emit Transfer(address(0), msg.sender, _totalSupply);
     }
 
-    
-    constructor() {
-        owner = msg.sender;
+    function totalSupply() public view override returns (uint256) {
+        return _totalSupply;
     }
 
-    function transfer(
-        address recipient,
-        uint amount
-    ) external override returns (bool) {
-        require(balanceOf[msg.sender] >= amount, "Insufficient balance"); 
-        balanceOf[msg.sender] -= amount; 
-        balanceOf[recipient] += amount; 
-        emit Transfer(msg.sender, recipient, amount); 
-        return true; 
+    function balanceOf(address account) public view override returns (uint256) {
+        return _balances[account];
     }
 
+    function transfer(address recipient, uint256 amount) public override returns (bool) {
+        require(recipient != address(0), "ERC20: transfer to the zero address");
+        require(_balances[msg.sender] >= amount, "ERC20: transfer amount exceeds balance");
 
-    function mint(uint amount) external onlyOwner {
-        balanceOf[msg.sender] += amount;
-        totalSupply += amount; 
-        emit Transfer(address(0), msg.sender, amount);
+        _balances[msg.sender] -= amount;
+        _balances[recipient] += amount;
+        emit Transfer(msg.sender, recipient, amount);
+        return true;
     }
 
+    function allowance(address owner, address spender) public view override returns (uint256) {
+        return _allowances[owner][spender];
+    }
 
-    function burn(uint amount) external {
-        balanceOf[msg.sender] -= amount; 
-        totalSupply -= amount; 
-        emit Transfer(msg.sender, address(0), amount); 
+    function approve(address spender, uint256 amount) public override returns (bool) {
+        require(spender != address(0), "ERC20: approve to the zero address");
+
+        _allowances[msg.sender][spender] = amount;
+        emit Approval(msg.sender, spender, amount);
+        return true;
+    }
+
+    function transferFrom(address sender, address recipient, uint256 amount) public override returns (bool) {
+        require(sender != address(0), "ERC20: transfer from the zero address");
+        require(recipient != address(0), "ERC20: transfer to the zero address");
+        require(_balances[sender] >= amount, "ERC20: transfer amount exceeds balance");
+        require(_allowances[sender][msg.sender] >= amount, "ERC20: transfer amount exceeds allowance");
+
+        _balances[sender] -= amount;
+        _balances[recipient] += amount;
+        _allowances[sender][msg.sender] -= amount;
+        emit Transfer(sender, recipient, amount);
+        return true;
+    }
+
+    function burn(uint256 amount) public returns (bool) {
+        require(_balances[msg.sender] >= amount, "ERC20: burn amount exceeds balance");
+
+        _balances[msg.sender] -= amount;
+        _totalSupply -= amount;
+        emit Transfer(msg.sender, address(0), amount);
+        return true;
     }
 }
