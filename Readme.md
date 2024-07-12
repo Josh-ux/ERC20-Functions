@@ -29,7 +29,7 @@ JoshToken is a simple ERC20 token implementation with additional functionality f
 - `TokensBurned(address indexed from, uint256 amount)`: Emitted when tokens are burned.
 - `Transfer(address indexed from, address indexed to, uint256 amount)`: Emitted when tokens are transferred.
 
-##License
+## License
 Feel free to customize the content as needed for your specific use case or additional functionalities.
 
 
